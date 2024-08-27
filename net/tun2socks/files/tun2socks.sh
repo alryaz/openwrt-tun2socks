@@ -62,13 +62,9 @@ proto_tun2socks_setup() {
     [ -n "$udp_timeout" ] && cmd="$cmd -udp-timeout \"${udp_timeout}s\""
 
     # Spawn tun2socks process
-    local pidfile="/var/run/tun2socks-${config}.pid"
-    eval "$cmd &"
-    
-    # Save the PID
-    echo $! > "${pidfile}"
-    
-    # Notify netifd that the interface is up
+    eval "proto_run_command \"$config\" $cmd"
+
+    # Notify about network interface up
     proto_init_update "$iface" 1
     proto_send_update "$config"
 }
@@ -77,19 +73,11 @@ proto_tun2socks_teardown() {
     local config="$1"
     local iface="$2"
 
-    # Find and kill the tun2socks process
-    local pidfile="/var/run/tun2socks-${config}.pid"
-    if [ -f "$pidfile" ]; then
-        local pid
-        pid=$(cat "$pidfile")
-        kill "$pid" && rm -f "$pidfile"
-    fi
-
     # Notify netifd that the interface is down
     proto_kill_command "$config"
 }
 
 # Register the protocol with netifd
 [ -n "$INCLUDE_ONLY" ] || {
-        add_protocol tun2socks
+    add_protocol tun2socks
 }
