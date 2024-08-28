@@ -30,10 +30,11 @@ proto_tun2socks_setup() {
     local config="$1"
 
     # Load configuration from UCI
-    local fwmark interface loglevel mtu proxy restapi
+    local addresses fwmark interface loglevel mtu proxy restapi
     local tcp_auto_tuning tcp_rcvbuf tcp_sndbuf tun_post_up tun_pre_up udp_timeout
 
     config_load network
+    config_get addresses "${config}" "addresses"
     config_get fwmark "$config" fwmark
     config_get interface "$config" interface
     config_get loglevel "$config" loglevel
@@ -62,7 +63,27 @@ proto_tun2socks_setup() {
     [ -n "$udp_timeout" ] && cmd="$cmd -udp-timeout \"${udp_timeout}s\""
 
     # Spawn tun2socks process
+    ip link del dev "${iface}" >/dev/null 2>&1
     eval "proto_run_command \"$config\" $cmd"
+
+    
+    for address in ${addresses}; do
+        ip addr add dev "${address}" dev "${iface}"
+        case "${address}" in
+            *:*/*)
+                proto_add_ipv6_address "${address%%/*}" "${address##*/}
+                ;;
+            *.*/*)
+                proto_add_ipv4_address "${address%%/*}" "${address##*/}"
+                ;;
+            *:*)
+                proto_add_ipv6_address "${address%%/*}" "128"
+                ;;
+            *.*)
+                proto_add_ipv4_address "${address%%/*}" "32"
+                ;;
+        esac
+    done
 
     # Notify about network interface up
     proto_init_update "$iface" 1
@@ -75,6 +96,8 @@ proto_tun2socks_teardown() {
 
     # Notify netifd that the interface is down
     proto_kill_command "$config"
+
+    ip link del dev "${iface}" >/dev/null 2>&1
 }
 
 # Register the protocol with netifd
