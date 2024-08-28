@@ -7,7 +7,7 @@ network.registerPatternVirtual(/^t2s-.+$/);
 
 return network.registerProtocol('tun2socks', {
 	getI18n: function() {
-		return _('tun2socks (Transparent Proxy)');
+		return _('tun2socks');
 	},
 
 	getIfname: function() {
