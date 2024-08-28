@@ -35,19 +35,23 @@ return network.registerProtocol('tun2socks', {
 	},
 
 	renderFormOptions: function(s) {
-		var dev = this.getL3Device() || this.getDevice(), o,
-            bufParamWrapper = function(o_) {
-                o_.editable = true;
-                o_.optional = true;
-                o_.datatype = 'uinteger';
-                for (var i = 0; i < 10; i++) {
-                    o_.value(2 ** i);
-                }
-            };
-
+		var dev = this.getL3Device() || this.getDevice(), o;
+		var bufParamWrapper = function(o_) {
+			o_.editable = true;
+			o_.optional = true;
+			o_.datatype = 'uinteger';
+			for (var i = 0; i < 10; i++) {
+				o_.value(2 ** i);
+			}
+		};
+		
 		o = s.taboption('general', form.Value, 'proxy', _('Proxy'), _('Use this proxy [protocol://]host[:port].'));
 		o.optional = false;
 		o.placeholder = 'socks5://127.0.0.1:1080';
+
+		o = s.taboption('general', form.DynamicList, 'addresses', _('IP Addresses'), _('IP addresses of the tun2soxks interface.'));
+                o.datatype = 'ipaddr';
+                o.optional = true;
 
 		o = s.taboption('general', widgets.NetworkSelect, 'interface', _('Bind interface'), _('Bind the tunnel to this network interface (optional).'));
 		o.optional = true;
@@ -61,7 +65,7 @@ return network.registerProtocol('tun2socks', {
 		o.optional = true;
 
 		o = s.taboption('advanced', form.Value, 'tcp_rcvbuf', _('TCP Receive Buffer Size'), _('Set TCP receive buffer size for netstack.'));
-        bufParamWrapper(o);
+		bufParamWrapper(o);
 
 		o = s.taboption('advanced', form.Value, 'tcp_sndbuf', _('TCP Send Buffer Size'), _('Set TCP send buffer size for netstack.'));
 		bufParamWrapper(o);
@@ -69,7 +73,7 @@ return network.registerProtocol('tun2socks', {
 		o = s.taboption('advanced', form.Value, 'udp_timeout', _('UDP Timeout'), _('Set timeout for each UDP session.'));
 		o.optional = true;
 		o.placeholder = '30';
-        o.datatype = 'uinteger';
+		o.datatype = 'uinteger';
 
 		o = s.taboption('advanced', form.Value, 'fwmark', _('Firewall Mark'), _('Set firewall MARK (Linux only).'));
 		o.optional = true;
