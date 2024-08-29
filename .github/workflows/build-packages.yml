@@ -19,6 +19,7 @@ jobs:
               uses: actions/checkout@v4
               with:
                 path: 'current'
+                fetch-depth: 0
 
             - name: Get latest release version
               id: get_latest_release
