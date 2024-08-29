@@ -26,9 +26,9 @@ jobs:
               run: |
                 # Fetch latest release of github repository
                 # If non-existent, use initial commit of the repository
-                latest_release=$(cd current && git describe --tags --abbrev=0 2>/dev/null)
-                if [[ -z $latest_release ]]; then
-                    latest_release=$(cd current && git rev-list --max-parents=0 HEAD 2>/dev/null)
+                latest_release=$(cd current && git describe --tags --abbrev=0)
+                if [[ -z "${latest_release}" ]]; then
+                    latest_release=$(cd current && git rev-list --max-parents=0 HEAD)
                     echo "Latest release is the initial commit (${latest_release})"
                 else
                     echo "Latest release is ${latest_release}"
