@@ -14,6 +14,13 @@ jobs:
         outputs:
             version_upgraded: ${{ steps.compare_versions.outputs.version_upgraded }}
         steps:
+            - name: Checkout current version
+              id: checkout_current
+              uses: actions/checkout@v4
+              with:
+                path: 'current'
+                filter: '**/Makefile'
+
             - name: Get latest release version
               id: get_latest_release
               run: |
@@ -24,13 +31,6 @@ jobs:
                     latest_release=$(git rev-list --max-parents=0 HEAD)
                 fi
                 echo "latest_release=$latest_release" >> $GITHUB_OUTPUT
-
-            - name: Checkout current version
-              id: checkout_current
-              uses: actions/checkout@v4
-              with:
-                path: 'current'
-                filter: '**/Makefile'
 
             - name: Checkout previous version
               id: checkout_release
