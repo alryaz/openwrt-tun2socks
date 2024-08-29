@@ -1,0 +1,142 @@
+name: Test Build
+
+on:
+    workflow_dispatch:
+    push:
+        paths:
+            - net/tun2socks/Makefile
+            - luci/luci-proto-tun2socks/Makefile
+
+jobs:
+    check:
+        name: Check if packages changed versions or revisions
+        runs-on: ubuntu-latest
+        outputs:
+            version_upgraded: ${{ steps.compare_versions.outputs.version_upgraded }}
+        steps:
+            - name: Get latest release version
+              id: get_latest_release
+              run: |
+                # Fetch latest release of github repository
+                # If non-existent, use initial commit of the repository
+                latest_release=$(git describe --tags --abbrev=0)
+                if [[ -z $latest_release ]]; then
+                    latest_release=$(git rev-list --max-parents=0 HEAD)
+                fi
+                echo "latest_release=$latest_release" >> $GITHUB_OUTPUT
+
+            - name: Checkout current version
+              id: checkout_current
+              uses: actions/checkout@v4
+              with:
+                path: 'current'
+                filter: '**/Makefile'
+
+            - name: Checkout previous version
+              id: checkout_release
+              uses: actions/checkout@v4
+              with:
+                ref: ${{ steps.get_latest_release.outputs.latest_release }}
+                path: 'release'
+                filter: '**/Makefile'
+
+            - name: Compare versions
+              if: '!cancelled()'
+              id: compare_versions
+              run: |
+                # Iterate Makefile files found in current directory (recursively)
+                # Compare PKG_VERSION and PKG_RELEASE values
+                # If any of the values are different, set version_upgraded to true
+                for file in $(find current -name Makefile); do
+                  pkg_name=$(basename $(dirname "$file"))
+                
+                  # Analyze commit version
+                  current_version=$(grep -E '^PKG_VERSION:=' $file | cut -d'=' -f2)
+                  current_release=$(grep -E '^PKG_RELEASE:=' $file | cut -d'=' -f2)
+                
+                  # Analyze release version
+                  release_file=$(echo $file | sed 's/current/release/')
+                  release_version=$(grep -E '^PKG_VERSION:=' $release_file | cut -d'=' -f2)
+                  release_release=$(grep -E '^PKG_RELEASE:=' $release_file | cut -d'=' -f2)
+              
+                  # Compare versions
+                  if [[ $current_version != $release_version || $current_release != $release_release ]]; then
+                    echo "Version or release upgraded for package $pkg_name"
+                    echo "version_upgraded=true" >> $GITHUB_OUTPUT
+                    exit 0
+                  fi
+                done
+                echo "Version on release remains the same"
+
+#    build:
+#        name: Build for ${{ matrix.arch }} architecture
+#        if: needs.check.outputs.version_upgraded == 'true' || github.event_name == 'workflow_dispatch'
+#        runs-on: ubuntu-latest
+#        strategy:
+#            matrix:
+#                arch:
+#                    # List architectures of OpenWRT
+#                    - x86_64
+#                    - i386_pentium4
+#                    - aarch64_cortex-a53
+#                    - arm_cortex-a7
+#                    - arm_cortex-a7_neon-vfpv4
+#                    - arm_cortex-a8_vfpv3
+#                    - arm_cortex-a9_neon
+#                    - arm_cortex-a9_vfpv3
+#                    - arm_cortex-a15_neon-vfpv4
+#                    - mipsel_24kc
+#                    - mipsel_74kc
+#                    - mips_24kc
+#
+#        steps:
+#            - name: Checkout current repository
+#              uses: actions/checkout@v4
+#
+#            - name: Build
+#              uses: openwrt/gh-action-sdk@main
+#              env:
+#                  FEEDNAME: tun2socks
+#                  ARCH: ${{ matrix.arch }}
+#                  PACKAGES: tun2socks luci-proto-tun2socks
+#
+#            - name: Store packages
+#              uses: actions/upload-artifact@v4
+#              with:
+#                  name: ${{ matrix.arch }}-packages
+#                  path: bin/packages/${{ matrix.arch }}/packages/*.ipk
+
+#    release:
+#        name: Create release for upgraded versions
+#        if: needs.check.outputs.version_upgraded == 'true' || github.event_name == 'workflow_dispatch'
+#        runs-on: ubuntu-latest
+#        steps:
+#            - name: Checkout current repository
+#              uses: actions/checkout@v4
+#
+#            - name: Write body for package versions
+#              id: write_body
+#              run: |
+#                  body=""
+#                  for file in $(find current -name Makefile); do
+#                    pkg_name=$(basename $(dirname "$file"))
+#                    current_version=$(grep -E '^PKG_VERSION:=' $file | cut -d'=' -f2)
+#                    current_release=$(grep -E '^PKG_RELEASE:=' $file | cut -d'=' -f2)
+#                    release_file=$(echo $file | sed 's/current/release/')
+#                    release_version=$(grep -E '^PKG_VERSION:=' $release_file | cut -d'=' -f2)
+#                    release_release=$(grep -E '^PKG_RELEASE:=' $release_file | cut -d'=' -f2)
+#                    if [[ $current_version != $release_version || $current_release != $release_release ]]; then
+#                      body="$body\n$pkg_name: $current_version-$current_release -> $release_version-$release_release"
+#                    fi
+#                  done
+#                  echo "body=$body" >> $GITHUB_OUTPUT
+#
+#            - name: Create release
+#              uses: softprops/action-gh-release@v2
+#              with:
+#                  # Generate release tag from current date and time
+#                  tag_name: "v${{ github.run_id }}"
+#                  release_name: Release ${{ steps.get_latest_release.outputs.latest_release }}
+#                  body: ${{ steps.write_body.outputs.body }}
+#                  draft: false
+#                  prerelease: false

@@ -1,5 +1,7 @@
 include $(TOPDIR)/rules.mk
 
+PKG_VERSION:=0.0.1
+
 LUCI_TITLE:=Protocol support for tun2socks
 LUCI_DEPENDS:=+tun2socks
 LUCI_PKGARCH:=all
