@@ -19,7 +19,6 @@ jobs:
               uses: actions/checkout@v4
               with:
                 path: 'current'
-                filter: '**/Makefile'
 
             - name: Get latest release version
               id: get_latest_release
@@ -38,7 +37,6 @@ jobs:
               with:
                 ref: ${{ steps.get_latest_release.outputs.latest_release }}
                 path: 'release'
-                filter: '**/Makefile'
 
             - name: Compare versions
               if: '!cancelled()'
